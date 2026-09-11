@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Iniciar Sesión - TiendaDeMascotas Admin</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+<header class="header">
+    <div class="header-contenido">
+        <div class="logo">
+            <a href="administrador.html">
+                <span class="logo-icono">🐾</span>
+                <div>
+                    <h1>TiendaDeMascotas</h1>
+                    <span class="logo-subtitulo">Panel de Administración</span>
+                </div>
+            </a>
+        </div>
+        <nav>
+            <ul class="nav-lista">
+                <li><a href="administrador.html" class="nav-link">Panel Admin</a></li>
+                <li><a href="IniciarSesion.html" class="nav-link activo">Iniciar sesión</a></li>
+            </ul>
+        </nav>
+    </div>
+</header>
+
+<main>
+    <div class="formulario">
+        <h2>🔐 Iniciar Sesión</h2>
+        <form id="login-form">
+            <label for="login-email">Email <span class="requerido">*</span></label>
+            <input type="email" id="login-email" maxlength="100" placeholder="admin@duoc.cl" required>
+            <small>Solo @duoc.cl, @profesor.duoc.cl o @gmail.com</small>
+
+            <label for="login-pass">Contraseña <span class="requerido">*</span></label>
+            <input type="password" id="login-pass" maxlength="10" placeholder="••••••••" required>
+            <small>Entre 4 y 10 caracteres</small>
+
+            <button type="submit" class="boton boton-principal">Ingresar</button>
+        </form>
+        <div class="enlace" style="text-align:center;margin-top:20px;color:#777;font-size:14px;">
+            Credenciales por defecto: <strong>admin@duoc.cl / 1234</strong>
+        </div>
+    </div>
+</main>
+
+<footer class="footer">
+    <div class="footer-contenido">
+        <div class="footer-columna">
+            <h3>🐾 TiendaDeMascotas - Admin</h3>
+            <p style="color:#bec6bf;">Panel de administración del proyecto.</p>
+        </div>
+        <div class="footer-columna">
+            <h3>Acceso</h3>
+            <a href="IniciarSesion.html">Iniciar sesión</a>
+            <a href="administrador.html">Panel Admin</a>
+        </div>
+    </div>
+    <div class="footer-bottom">
+        <p>&copy; 2026 TiendaDeMascotas. Todos los derechos reservados.</p>
+    </div>
+</footer>
+
+<script src="js/javaScript.js"></script>
+</body>
+</html>

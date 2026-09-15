@@ -49,6 +49,7 @@ function guardarUsuarios() {
 function guardarOrdenes() {
     localStorage.setItem('ordenes', JSON.stringify(ordenes));
 }
+
 function obtenerSesion() {
     return JSON.parse(localStorage.getItem('sesion')) || null;
 }
@@ -86,153 +87,12 @@ function cambiarRol(rol) {
         if (btnProductos) btnProductos.style.display = 'block';
         if (btnOrdenes) btnOrdenes.style.display = 'block';
         mostrarTab('productos');
-    } else if (rol === 'Cliente') {
-        alert('Los clientes solo pueden acceder a la tienda pública.');
-        window.location.href = 'index.html';
     } else {
         if (btnUsuarios) btnUsuarios.style.display = 'block';
         if (btnProductos) btnProductos.style.display = 'block';
         if (btnOrdenes) btnOrdenes.style.display = 'block';
     }
     actualizarListaProductosAdmin();
-}
-
-function obtenerCarrito() {
-    return JSON.parse(localStorage.getItem('carrito')) || [];
-}
-function guardarCarrito(carrito) {
-    localStorage.setItem('carrito', JSON.stringify(carrito));
-    actualizarContadorCarrito();
-}
-function actualizarContadorCarrito() {
-    const carrito = obtenerCarrito();
-    const total = carrito.reduce((s, i) => s + (i.cantidad || 1), 0);
-    document.querySelectorAll('.carrito-contador').forEach(el => el.textContent = total);
-}
-function agregarAlCarrito(id) {
-    const producto = productos.find(p => p.id === id);
-    if (!producto) { alert("❌ Producto no encontrado"); return; }
-    let carrito = obtenerCarrito();
-    const existente = carrito.find(item => item.id === id);
-    const cantidadActual = existente ? existente.cantidad : 0;
-    if (cantidadActual + 1 > producto.stock) {
-        alert("❌ No hay suficiente stock. Disponible: " + producto.stock);
-        return;
-    }
-    if (existente) existente.cantidad++;
-    else carrito.push({ ...producto, cantidad: 1 });
-    guardarCarrito(carrito);
-    alert("✅ " + producto.nombre + " agregado al carrito");
-}
-function eliminarDelCarrito(id) {
-    let carrito = obtenerCarrito().filter(i => i.id !== id);
-    guardarCarrito(carrito);
-    if (document.getElementById('carrito-lista')) mostrarCarrito();
-}
-function cambiarCantidad(id, delta) {
-    let carrito = obtenerCarrito();
-    const item = carrito.find(i => i.id === id);
-    if (!item) return;
-    const producto = productos.find(p => p.id === id);
-    const nueva = (item.cantidad || 1) + delta;
-    if (nueva <= 0) carrito = carrito.filter(i => i.id !== id);
-    else if (nueva > producto.stock) { alert("❌ Stock insuficiente"); return; }
-    else item.cantidad = nueva;
-    guardarCarrito(carrito);
-    mostrarCarrito();
-}
-function mostrarCarrito() {
-    const contenedor = document.getElementById('carrito-lista');
-    if (!contenedor) return;
-    const carrito = obtenerCarrito();
-    if (carrito.length === 0) {
-        contenedor.innerHTML = `<div class="carrito-vacio"><p style="font-size:48px;">🛒</p><p>Tu carrito está vacío</p><a href="productos.html">Ir a comprar →</a></div>`;
-        const t = document.getElementById('total-monto');
-        if (t) t.textContent = '0';
-        return;
-    }
-    let html = '', total = 0;
-    carrito.forEach(item => {
-        const cant = item.cantidad || 1;
-        const sub = item.precio * cant;
-        total += sub;
-        html += `<div class="carrito-item">
-            <div class="info">
-                <img src="${item.imagen}" alt="${item.nombre}">
-                <div><h3>${item.nombre}</h3><p>$${item.precio.toLocaleString()} c/u</p></div>
-            </div>
-            <div class="acciones">
-                <div class="cantidad">
-                    <button onclick="cambiarCantidad(${item.id}, -1)">−</button>
-                    <span>${cant}</span>
-                    <button onclick="cambiarCantidad(${item.id}, 1)">+</button>
-                </div>
-                <div class="precio">$${sub.toLocaleString()}</div>
-                <button class="eliminar" onclick="eliminarDelCarrito(${item.id})">✕</button>
-            </div>
-        </div>`;
-    });
-    contenedor.innerHTML = html;
-    const tm = document.getElementById('total-monto');
-    if (tm) tm.textContent = total.toLocaleString();
-}
-function finalizarCompra() {
-    const carrito = obtenerCarrito();
-    if (carrito.length === 0) { alert("❌ Tu carrito está vacío."); return; }
-    const sesion = obtenerSesion();
-    const total = carrito.reduce((s, i) => s + i.precio * (i.cantidad || 1), 0);
-    const nuevaOrden = {
-        id: ordenes.length + 1,
-        fecha: new Date().toLocaleDateString('es-CL'),
-        cliente: sesion ? sesion.nombre : "Cliente Invitado",
-        total: total,
-        productos: JSON.parse(JSON.stringify(carrito))
-    };
-    ordenes.push(nuevaOrden);
-    guardarOrdenes();
-    guardarCarrito([]);
-    alert("✅ ¡Compra exitosa!\n\nOrden #" + nuevaOrden.id + "\nTotal: $" + total.toLocaleString());
-    mostrarCarrito();
-}
-function verDetalleOrden(id) {
-    const orden = ordenes.find(o => o.id === id);
-    if (!orden) return;
-    const modal = document.createElement('div');
-    modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.6);display:flex;align-items:center;justify-content:center;z-index:9999;';
-    modal.innerHTML = `
-        <div style="background:white;padding:30px;border-radius:16px;max-width:500px;width:90%;max-height:80vh;overflow:auto;">
-            <h2 style="color:#334b36;">📋 Orden #${orden.id}</h2>
-            <p><strong>Fecha:</strong> ${orden.fecha}</p>
-            <p><strong>Cliente:</strong> ${orden.cliente}</p>
-            <hr style="margin:15px 0;">
-            <h3>Productos:</h3>
-            ${orden.productos.map(p => `<p>• ${p.nombre} × ${p.cantidad} = $${(p.precio * p.cantidad).toLocaleString()}</p>`).join('')}
-            <hr style="margin:15px 0;">
-            <p style="font-size:20px;font-weight:700;color:#334b36;">Total: $${orden.total.toLocaleString()}</p>
-            <button onclick="this.closest('div').parentElement.remove()" class="boton boton-principal" style="margin-top:15px;width:100%;">Cerrar</button>
-        </div>`;
-    document.body.appendChild(modal);
-}
-
-function mostrarProductos() {
-    const contenedor = document.getElementById('productos-lista');
-    if (!contenedor) return;
-    contenedor.innerHTML = productos.map(p => `
-        <div class="producto" style="cursor:pointer;" onclick="verProducto(${p.id})">
-            <img src="${p.imagen}" alt="${p.nombre}" loading="lazy">
-            <h3>${p.nombre}</h3>
-            <p class="precio">$${p.precio.toLocaleString()}</p>
-            <button class="boton-agregar" onclick="event.stopPropagation(); agregarAlCarrito(${p.id})">🛒 Añadir al carrito</button>
-        </div>
-    `).join('');
-}
-
-function verProducto(id) {
-    if (id >= 1 && id <= 4) {
-        window.location.href = `detalle${id}.html`;
-    } else {
-        alert('Este producto aún no tiene página de detalle.');
-    }
 }
 
 function validarEmail(email) {
@@ -282,62 +142,21 @@ function validarLogin(e) {
         mostrarError('login-email', '❌ Credenciales incorrectas.');
         return false;
     }
+
     localStorage.setItem('sesion', JSON.stringify({
         email: usuario.email,
         nombre: usuario.nombre,
         rol: usuario.tipo || 'Cliente'
     }));
+
     alert('✅ Bienvenido ' + usuario.nombre);
+
     if (usuario.tipo === 'Administrador' || usuario.tipo === 'Vendedor') {
         window.location.href = 'administrador.html';
     } else {
-        window.location.href = 'index.html';
+        alert('⛔ Solo Administradores y Vendedores pueden acceder al panel.');
+        localStorage.removeItem('sesion');
     }
-    return true;
-}
-
-function validarRegistro(e) {
-    e.preventDefault();
-    const rut = document.getElementById('reg-rut').value.trim();
-    const nombre = document.getElementById('reg-nombre').value.trim();
-    const apellidos = document.getElementById('reg-apellidos').value.trim();
-    const email = document.getElementById('reg-email').value.trim();
-    const pass = document.getElementById('reg-pass').value.trim();
-    const region = document.getElementById('reg-region').value;
-    const comuna = document.getElementById('reg-comuna').value;
-    const direccion = document.getElementById('reg-direccion').value.trim();
-
-    if (!validarRut(rut)) { mostrarError('reg-rut', '❌ RUT inválido.'); return false; }
-    if (!nombre || nombre.length > 50) { mostrarError('reg-nombre', '❌ Nombre requerido (máx 50).'); return false; }
-    if (!apellidos || apellidos.length > 100) { mostrarError('reg-apellidos', '❌ Apellidos (máx 100).'); return false; }
-    if (!validarEmail(email)) { mostrarError('reg-email', '❌ Email inválido.'); return false; }
-    if (usuariosGuardados.some(u => u.email === email)) { mostrarError('reg-email', '❌ Email ya registrado.'); return false; }
-    if (pass.length < 4 || pass.length > 10) { mostrarError('reg-pass', '❌ Contraseña: 4-10.'); return false; }
-    if (!region) { mostrarError('reg-region', '❌ Selecciona región.'); return false; }
-    if (!comuna) { mostrarError('reg-comuna', '❌ Selecciona comuna.'); return false; }
-    if (!direccion || direccion.length > 300) { mostrarError('reg-direccion', '❌ Dirección (máx 300).'); return false; }
-
-    usuariosGuardados.push({
-        rut, nombre, apellidos, email, password: pass,
-        region, comuna, direccion, tipo: "Cliente"
-    });
-    guardarUsuarios();
-    alert('✅ Registro exitoso. ¡Bienvenido ' + nombre + '!');
-    document.getElementById('registro-form').reset();
-    window.location.href = 'IniciarSesion.html';
-    return true;
-}
-
-function validarContacto(e) {
-    e.preventDefault();
-    const nombre = document.getElementById('contact-nombre').value.trim();
-    const email = document.getElementById('contact-email').value.trim();
-    const comentario = document.getElementById('contact-comentario').value.trim();
-    if (!nombre || nombre.length > 100) { mostrarError('contact-nombre', '❌ Nombre (máx 100).'); return false; }
-    if (!validarEmail(email)) { mostrarError('contact-email', '❌ Email inválido.'); return false; }
-    if (!comentario || comentario.length > 500) { mostrarError('contact-comentario', '❌ Comentario (máx 500).'); return false; }
-    alert('✅ Mensaje enviado');
-    document.getElementById('contacto-form').reset();
     return true;
 }
 
@@ -356,7 +175,8 @@ function validarAdminProducto(e) {
     if (!codigo || codigo.length < 3) { alert('❌ Código (mín 3).'); return false; }
     if (!nombre || nombre.length > 100) { alert('❌ Nombre (máx 100).'); return false; }
     if (descripcion.length > 500) { alert('❌ Descripción (máx 500).'); return false; }
-    if (!precio || parseFloat(precio) < 0) { alert('❌ Precio (mín 0).'); return false; }
+    const precioNum = parseFloat(precio);
+    if (isNaN(precioNum) || precioNum < 0) { alert('❌ Precio inválido.'); return false; }
     if (stock === '' || !/^\d+$/.test(stock)) { alert('❌ Stock entero ≥ 0.'); return false; }
     if (stockCritico && !/^\d+$/.test(stockCritico)) { alert('❌ Stock crítico entero.'); return false; }
 
@@ -367,21 +187,26 @@ function validarAdminProducto(e) {
     if (idEditar) {
         const p = productos.find(p => p.id === parseInt(idEditar));
         if (p) {
-            Object.assign(p, { codigo, nombre, descripcion: descripcion || "Sin descripción",
-                precio: parseFloat(precio), stock: parseInt(stock),
-                stockCritico: parseInt(stockCritico) || 0, categoria, imagen });
+            Object.assign(p, {
+                codigo, nombre,
+                descripcion: descripcion || "Sin descripción",
+                precio: precioNum,
+                stock: parseInt(stock),
+                stockCritico: parseInt(stockCritico) || 0,
+                categoria, imagen
+            });
             alert('✅ Producto actualizado');
         }
     } else {
         const nuevoId = Math.max(...productos.map(p => p.id), 0) + 1;
         productos.push({
-            id: nuevoId, codigo, nombre,
-            precio: parseFloat(precio), imagen,
+            id: nuevoId, codigo, nombre, precio: precioNum, imagen,
             descripcion: descripcion || "Sin descripción",
             stock: parseInt(stock), stockCritico: parseInt(stockCritico) || 0, categoria
         });
         alert('✅ Producto guardado');
     }
+
     guardarProductos();
     actualizarListaProductosAdmin();
     cancelarEdicion();
@@ -405,6 +230,7 @@ function editarProductoAdmin(id) {
     document.getElementById('btn-cancelar-edicion').style.display = 'inline-block';
     window.scrollTo({ top: 0, behavior: 'smooth' });
 }
+
 function cancelarEdicion() {
     document.getElementById('admin-producto-form').reset();
     document.getElementById('prod-id-editar').value = '';
@@ -412,6 +238,7 @@ function cancelarEdicion() {
     document.getElementById('btn-guardar-producto').textContent = 'Guardar Producto';
     document.getElementById('btn-cancelar-edicion').style.display = 'none';
 }
+
 function eliminarProductoAdmin(id) {
     if (!confirm("¿Eliminar este producto?")) return;
     productos = productos.filter(p => p.id !== id);
@@ -419,6 +246,7 @@ function eliminarProductoAdmin(id) {
     actualizarListaProductosAdmin();
     alert('✅ Producto eliminado');
 }
+
 function actualizarListaProductosAdmin() {
     const lista = document.getElementById('lista-productos-simulada');
     if (!lista) return;
@@ -472,6 +300,7 @@ function validarAdminUsuario(e) {
     document.getElementById('user-id-editar').value = '';
     return true;
 }
+
 function editarUsuarioAdmin(index) {
     const u = usuariosGuardados[index];
     if (!u) return;
@@ -487,6 +316,7 @@ function editarUsuarioAdmin(index) {
     document.getElementById('user-direccion').value = u.direccion;
     window.scrollTo({ top: 0, behavior: 'smooth' });
 }
+
 function eliminarUsuarioAdmin(index) {
     if (!confirm('¿Eliminar este usuario?')) return;
     usuariosGuardados.splice(index, 1);
@@ -494,6 +324,7 @@ function eliminarUsuarioAdmin(index) {
     actualizarListaUsuariosAdmin();
     alert('✅ Usuario eliminado');
 }
+
 function actualizarListaUsuariosAdmin() {
     const lista = document.getElementById('lista-usuarios-simulada');
     if (!lista) return;
@@ -511,6 +342,27 @@ function actualizarListaUsuariosAdmin() {
         </li>
     `).join('');
 }
+
+function verDetalleOrden(id) {
+    const orden = ordenes.find(o => o.id === id);
+    if (!orden) return;
+    const modal = document.createElement('div');
+    modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.6);display:flex;align-items:center;justify-content:center;z-index:9999;';
+    modal.innerHTML = `
+        <div style="background:white;padding:30px;border-radius:16px;max-width:500px;width:90%;max-height:80vh;overflow:auto;">
+            <h2 style="color:#334b36;">📋 Orden #${orden.id}</h2>
+            <p><strong>Fecha:</strong> ${orden.fecha}</p>
+            <p><strong>Cliente:</strong> ${orden.cliente}</p>
+            <hr style="margin:15px 0;">
+            <h3>Productos:</h3>
+            ${orden.productos.map(p => `<p>• ${p.nombre} × ${p.cantidad} = $${(p.precio * p.cantidad).toLocaleString()}</p>`).join('')}
+            <hr style="margin:15px 0;">
+            <p style="font-size:20px;font-weight:700;color:#334b36;">Total: $${orden.total.toLocaleString()}</p>
+            <button onclick="this.closest('div').parentElement.remove()" class="boton boton-principal" style="margin-top:15px;width:100%;">Cerrar</button>
+        </div>`;
+    document.body.appendChild(modal);
+}
+
 function actualizarListaOrdenes() {
     const contenedor = document.getElementById('lista-ordenes');
     if (!contenedor) return;
@@ -529,7 +381,7 @@ function actualizarListaOrdenes() {
 }
 
 function cargarRegiones() {
-    const selects = [document.getElementById('user-region'), document.getElementById('reg-region')];
+    const selects = [document.getElementById('user-region')];
     selects.forEach(select => {
         if (!select) return;
         select.innerHTML = '<option value="">Selecciona una región</option>';
@@ -541,10 +393,10 @@ function cargarRegiones() {
         });
     });
 }
+
 function cargarComunas() {
     const pares = [
-        { region: document.getElementById('user-region'), comuna: document.getElementById('user-comuna') },
-        { region: document.getElementById('reg-region'), comuna: document.getElementById('reg-comuna') }
+        { region: document.getElementById('user-region'), comuna: document.getElementById('user-comuna') }
     ];
     pares.forEach(par => {
         if (!par.region || !par.comuna) return;
@@ -560,37 +412,44 @@ function cargarComunas() {
     });
 }
 
+function configurarValidacionTiempoReal() {
+    const campos = [
+        { id: 'login-email', val: v => validarEmail(v) },
+        { id: 'login-pass', val: v => v.length >= 4 && v.length <= 10 }
+    ];
+    campos.forEach(c => {
+        const input = document.getElementById(c.id);
+        if (!input) return;
+        input.addEventListener('input', function() {
+            if (this.value.length === 0) {
+                this.style.borderColor = '#e0ddd5';
+                return;
+            }
+            this.style.borderColor = c.val(this.value) ? '#4e6b50' : '#c0392b';
+        });
+    });
+}
+
 document.addEventListener('DOMContentLoaded', function() {
-    actualizarContadorCarrito();
     protegerAdmin();
 
-    if (document.getElementById('productos-lista')) mostrarProductos();
-    if (document.getElementById('productos-destacados')) {
-        const cont = document.getElementById('productos-destacados');
-        cont.innerHTML = productos.slice(0, 2).map(p => `
-            <div class="producto" style="cursor:pointer;" onclick="verProducto(${p.id})">
-                <img src="${p.imagen}" alt="${p.nombre}">
-                <h3>${p.nombre}</h3>
-                <p class="precio">$${p.precio.toLocaleString()}</p>
-                <button class="boton-agregar" onclick="event.stopPropagation(); agregarAlCarrito(${p.id})">🛒 Añadir</button>
-            </div>`).join('');
-    }
-    if (document.getElementById('carrito-lista')) mostrarCarrito();
     if (document.getElementById('lista-productos-simulada')) actualizarListaProductosAdmin();
     if (document.getElementById('lista-usuarios-simulada')) actualizarListaUsuariosAdmin();
     if (document.getElementById('lista-ordenes')) actualizarListaOrdenes();
 
-    const f = (id, fn) => { const el = document.getElementById(id); if (el) el.addEventListener('submit', fn); };
-    f('login-form', validarLogin);
-    f('registro-form', validarRegistro);
-    f('contacto-form', validarContacto);
-    f('admin-producto-form', validarAdminProducto);
-    f('admin-usuario-form', validarAdminUsuario);
+    const loginForm = document.getElementById('login-form');
+    if (loginForm) loginForm.addEventListener('submit', validarLogin);
+
+    const adminProductoForm = document.getElementById('admin-producto-form');
+    if (adminProductoForm) adminProductoForm.addEventListener('submit', validarAdminProducto);
+
+    const adminUsuarioForm = document.getElementById('admin-usuario-form');
+    if (adminUsuarioForm) adminUsuarioForm.addEventListener('submit', validarAdminUsuario);
 
     cargarRegiones();
-    ['user-region', 'reg-region'].forEach(id => {
-        const sel = document.getElementById(id);
-        if (sel) sel.addEventListener('change', cargarComunas);
-    });
+    const userRegion = document.getElementById('user-region');
+    if (userRegion) userRegion.addEventListener('change', cargarComunas);
     cargarComunas();
+
+    configurarValidacionTiempoReal();
 });
